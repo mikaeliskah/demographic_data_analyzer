@@ -3,42 +3,81 @@ import pandas as pd
 
 def calculate_demographic_data(print_data=True):
     # Read data from file
-    df = None
-
+    df = pd.read_csv('adult.data.csv')
+    (rows, cols) = df.shape
     # How many of each race are represented in this dataset? This should be a Pandas series with race names as the index labels.
-    race_count = None
+    # get all the races in the list
+    races = df['race'].unique()
+    # empty list - amount of people per race will be stored here
+    count = []
+    for race in races:
+        count.append(len(df.race[df['race'] == race]))
+
+    race_count = pd.Series(count, index=races)
 
     # What is the average age of men?
-    average_age_men = None
+    average_age_men = round(pd.Series.mean(df.age[df.sex == 'Male']), 1)
 
     # What is the percentage of people who have a Bachelor's degree?
-    percentage_bachelors = None
+    percentage_bachelors = round(100*len(df.education[df.education == 'Bachelors']) / rows, 1)
 
     # What percentage of people with advanced education (`Bachelors`, `Masters`, or `Doctorate`) make more than 50K?
     # What percentage of people without advanced education make more than 50K?
 
     # with and without `Bachelors`, `Masters`, or `Doctorate`
-    higher_education = None
-    lower_education = None
-
+    people_with_degs = ((df.education == ('Bachelors')) | (df.education ==
+                                                           ('Masters')) | (df.education == ('Doctorate')))
+    higher_education = df.salary[people_with_degs]
+    lower_education = df.salary[~people_with_degs]
+    N_hi = len(higher_education)
+    N_lo = len(lower_education)
     # percentage with salary >50K
-    higher_education_rich = None
-    lower_education_rich = None
+    higher_education_rich = round(100 * len(higher_education[higher_education == '>50K']) / N_hi, 1)
+    lower_education_rich = round(100 * len(lower_education[lower_education == '>50K']) / N_lo, 1)
 
     # What is the minimum number of hours a person works per week (hours-per-week feature)?
-    min_work_hours = None
+    # conver hyphens to underlines
+    i = 0
+    newcols = []
+    for col in df.columns:
+        newcols.append(col.replace('-', '_'))
+        i += 1
+    df.columns = newcols
+    min_work_hours = df.hours_per_week.min()
 
     # What percentage of the people who work the minimum number of hours per week have a salary of >50K?
-    num_min_workers = None
+    minhrs = round(df.hours_per_week.min(), 1)
+    min_workers_salary = df.salary[df.hours_per_week == minhrs]
+    num_min_workers = len(min_workers_salary)
 
-    rich_percentage = None
+    rich_percentage = round(
+        100*(len(min_workers_salary[min_workers_salary == '>50K']) / num_min_workers), 1)
 
     # What country has the highest percentage of people that earn >50K?
-    highest_earning_country = None
-    highest_earning_country_percentage = None
+    # get available countries
+    countries = df['native_country'].unique()
+    # get percentage of wealth >50K for each country and map values to list
+    percentage_wealthy = []
+    for country in countries:
+        percentage_wealthy.append([country, round(
+            100*len(df[(df.native_country == country) & (df.salary == '>50K')]) / len(df[(df.native_country == country)]), 1)])
+    # create a dataFrame from this list and sort it descending order
+    percent_wealth_country = pd.DataFrame(percentage_wealthy, columns=[
+                                          'country', 'wealthy_percentage'])
+    percent_wealth_country = percent_wealth_country.sort_values(
+        'wealthy_percentage', ascending=False)
+
+    # get result from upper (richest) row
+    highest_earning_country = percent_wealth_country.iloc[0][0]
+    highest_earning_country_percentage = percent_wealth_country.iloc[0][1]
 
     # Identify the most popular occupation for those who earn >50K in India.
-    top_IN_occupation = None
+    # find rich indian people
+    in_rich = df[(df.native_country == 'India') & (df.salary == '>50K')]
+    # get highest occupation-count
+    in_rich_occ = in_rich['occupation'].value_counts()
+    # return the occupation
+    top_IN_occupation = in_rich_occ.index[0]
 
     # DO NOT MODIFY BELOW THIS LINE
 
@@ -68,3 +107,6 @@ def calculate_demographic_data(print_data=True):
         highest_earning_country_percentage,
         'top_IN_occupation': top_IN_occupation
     }
+
+
+calculate_demographic_data()
